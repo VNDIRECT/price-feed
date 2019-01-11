@@ -1,29 +1,31 @@
-from contextlib import  contextmanager
 import parser
-
-# message type
-BA = "BA"
-SP = "SP"
-DE = "DERIVATIVE_OPT"
-MI = "MI"
+import json
 
 class Price():
 
     def __init__(self, ws):
         self.ws = ws
 
-    def subscribe(self, type, symbol_list):
-        msg = '{"type":"registConsumer","data":{"sequence":0,"params":{"name":"{}","codes":[{}]}}}'.format(type, ','.join(symbol_list))
-        self.ws.send(msg)
+    async def subscribe(self, msgType, symbol_list):
+        msg = {
+            "type": "registConsumer",
+            "data": {
+                "sequence": 0,
+                "params": {
+                    "name": msgType,
+                    "codes": symbol_list,
+                }
+            }
+        }
+        msg = json.dumps(msg)
+        await self.ws.send(msg)
 
     async def recv(self):
         data = await self.ws.recv()
         return parser.load(data)
 
 
-@contextmanager
-def connect(url=''):
-    async with websockets.connect(
-            'wss://price-hn02.vndirect.com.vn/realtime/websocket', ssl=True) as websocket:
+async def connect(url=''):
+    async with websockets.connect(url, ssl=True) as ws:
         yield Price(ws)
 
